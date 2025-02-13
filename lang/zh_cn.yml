@@ -1,0 +1,27 @@
+timed_restart:
+  system:
+    plugin_loaded: "TimedRestart 插件已加载！"
+    config_loaded: "配置文件已加载：{restart_times}，预警时间：{warning_minutes}，时区：UTC{timezone}"
+    reload_success: "TimedRestart 配置已重新加载！当前时区：UTC{timezone}"
+    restart_warning: "服务器将在 {minutes} 分钟后重启，请保存进度！"
+    restart_now: "服务器正在重启..."
+    error_loading_config: "配置文件加载失败，使用默认值：{error}"
+    log_restart_warning: "发送重启预警：{minutes} 分钟后重启"
+    list_restart_times: "当前设定的重启时间为：{times}"
+    add_restart_time: "成功添加新的重启时间：{time}"
+    remove_restart_time: "成功删除重启时间：{time}"
+    restart_time_exists: "重启时间 {time} 已经存在！"
+    restart_time_not_exists: "重启时间 {time} 不存在！"
+    invalid_timezone: "无效的时区，时区必须在 -12 到 12 之间"
+    invalid_timezone_format: "无效的时区格式，必须是一个整数"
+    set_timezone: "时区已设置为 {timezone}"
+
+  cmd:
+    help: |
+      ------ TimedRestart 指令帮助 ------
+      !!timed_restart help  显示此帮助信息
+      !!timed_restart reload  重新加载配置
+      !!timed_restart list 显示重启时间
+      !!timed_restart add <时间> 添加新的重启时间（格式 HH:MM，例如 `!!timed_restart add 15:30`）
+      !!timed_restart remove <时间> 删除已设定的重启时间（例如 `!!timed_restart remove 12:00`）
+      !!timed_restart timezone <时区> 设置新的时区（例如 `!!restart timezone 8`）

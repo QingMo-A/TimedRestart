@@ -4,6 +4,7 @@ import os
 import threading
 import datetime
 from mcdreforged.api.all import *
+from mcdreforged.api.command import SimpleCommandBuilder, Integer, Text, GreedyText
 
 PLUGIN_METADATA = {
     'id': 'timed_restart',
@@ -19,7 +20,7 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 # 服务器实例
 server_instance: PluginServerInterface = None
 
-# 默认配置（如果 config.json 不存在）
+# 默认配置
 default_config = {
     "restart_times": ["06:00", "12:00", "18:00", "00:00"],  # 24小时制
     "warning_minutes": [5, 3, 1],  # 预警时间（分钟）
@@ -30,6 +31,11 @@ default_config = {
 restart_times = []
 warning_minutes = []
 timezone_offset = 8  # 默认东八区
+
+
+def translate(server: PluginServerInterface, key: str, **kwargs):
+    """ 读取 yml 文件中的翻译文本 """
+    return server.rtr(key, **kwargs)
 
 
 def load_config():
@@ -50,10 +56,13 @@ def load_config():
             warning_minutes[:] = config.get("warning_minutes", default_config["warning_minutes"])
             timezone_offset = config.get("timezone", default_config["timezone"])
             server_instance.logger.info(
-                f"配置文件已加载：{restart_times}，预警时间：{warning_minutes}，时区：UTC{timezone_offset}"
+                translate(server_instance, "timed_restart.system.config_loaded",
+                          restart_times=restart_times, warning_minutes=warning_minutes, timezone=timezone_offset)
             )
     except Exception as e:
-        server_instance.logger.warning(f"配置文件加载失败，使用默认值：{e}")
+        server_instance.logger.warning(
+            translate(server_instance, "timed_restart.system.error_loading_config", error=str(e))
+        )
         restart_times[:] = default_config["restart_times"]
         warning_minutes[:] = default_config["warning_minutes"]
         timezone_offset = default_config["timezone"]
@@ -74,8 +83,8 @@ def check_restart_schedule():
             for warning in warning_minutes:
                 warning_time = calculate_warning_time(restart_time, warning)
                 if now == warning_time:
-                    server_instance.say(f"服务器将在 {warning} 分钟后重启，请保存进度！")
-                    server_instance.logger.info(f"发送重启预警：{warning} 分钟后重启")
+                    server_instance.say(translate(server_instance, "timed_restart.system.restart_warning", minutes=warning))
+                    server_instance.logger.info(translate(server_instance, "timed_restart.system.log_restart_warning", minutes=warning))
 
             if now == restart_time:
                 warn_and_restart()
@@ -93,32 +102,132 @@ def calculate_warning_time(restart_time, warning_minutes):
 
 def warn_and_restart():
     """ 发送最终重启通知并执行重启 """
-    server_instance.say("服务器正在重启...")
+    server_instance.say(translate(server_instance, "timed_restart.system.restart_now"))
     time.sleep(2)  # 确保消息发送完毕
     server_instance.restart()
 
 
 def on_load(server: PluginServerInterface, old_module):
     global server_instance
+    builder = SimpleCommandBuilder()
     server_instance = server
-    server.logger.info("TimedRestart 插件已加载！")
 
-    # 读取配置
     load_config()
+    server.logger.info(translate(server, "timed_restart.system.plugin_loaded"))
 
-    # 启动定时器线程
     restart_thread = threading.Thread(target=check_restart_schedule, daemon=True)
     restart_thread.start()
 
+    # server.register_command(
+    #     Literal('!!timed_restart')
+    #     .then(Literal('reload').runs(run_reload_command))
+    #     .then(Literal('help').runs(show_help))
+    #     .then(Literal('list').runs(show_restart_times))
+    #     .then(Literal('add').then(Argument(Text).runs(add_restart_time)))
+    #     .then(Literal('remove').then(Argument(Text).runs(remove_restart_time)))
+    # )
+
     # 注册命令
-    server.register_command(
-        Literal('!restart').then(
-            Literal('reload').runs(run_reload_command)
-        )
-    )
+    builder.command('!!timed_restart reload', run_reload_command)
+    builder.command('!!timed_restart help', show_help)
+    builder.command('!!timed_restart list', show_restart_times)
+    builder.command('!!timed_restart add <time>', add_restart_time)
+    builder.command('!!timed_restart remove <time>', remove_restart_time)
+    builder.command('!!timed_restart timezone <timezone>', set_timezone)
+
+    # 定义参数
+    builder.arg('time', Text)
+    builder.arg('timezone', Text)
+
+    # 注册命令
+    builder.register(server)
+
+def show_help(source: CommandSource):
+    """ 显示帮助信息 """
+    help_text = str(translate(source.get_server(), "timed_restart.cmd.help"))  # 转换为字符串
+    for line in help_text.split("\n"):
+        source.reply(RText(line))  # 确保输出格式正确
+
+def show_restart_times(source: CommandSource):
+    """ 显示所有重启时间 """
+    times_str = ", ".join(restart_times)
+    source.reply(translate(server_instance, 'timed_restart.system.list_restart_times', times=times_str))
+
+
+def add_restart_time(source: CommandSource, time: str):
+    """ 添加新的重启时间 """
+    global restart_times
+
+    # 检查time是否是字典格式，如果是，提取出'time'键的值
+    if isinstance(time, dict) and 'time' in time:
+        time = time['time']
+
+    # 如果time是字符串并且不在restart_times中，则添加到列表中
+    if time not in restart_times:
+        restart_times.append(time)
+        save_config()
+        source.reply(translate(server_instance, 'timed_restart.system.add_restart_time', time=time))
+    else:
+        source.reply(translate(server_instance, 'timed_restart.system.restart_time_exists', time=time))
+
+
+def remove_restart_time(source: CommandSource, time: str):
+    """ 删除已设定的重启时间 """
+    global restart_times
+
+    # 检查time是否是字典格式，如果是，提取出'time'键的值
+    if isinstance(time, dict) and 'time' in time:
+        time = time['time']
+
+    # 如果time在restart_times中，则移除它
+    if time in restart_times:
+        restart_times.remove(time)
+        save_config()
+        source.reply(translate(server_instance, 'timed_restart.system.remove_restart_time', time=time))
+    else:
+        source.reply(translate(server_instance, 'timed_restart.system.restart_time_not_exists', time=time))
+
+
+def set_timezone(source: CommandSource, timezone: str):
+    """ 设置新的时区 """
+    global timezone_offset  # 确保更新全局变量
+
+    # 检查time是否是字典格式，如果是，提取出'time'键的值
+    if isinstance(timezone, dict) and 'timezone' in timezone:
+        timezone = timezone['timezone']
+
+    try:
+        # 尝试将时区转换为整数
+        new_timezone = int(timezone)
+
+        # 检查时区是否合法，假设时区范围是 -12 到 +12
+        if new_timezone < -12 or new_timezone > 12:
+            source.reply(translate(server_instance, 'timed_restart.system.invalid_timezone'))
+            return
+
+        # 更新时区
+        timezone_offset = new_timezone  # 更新全局时区变量
+        save_config()  # 保存配置文件
+
+        # 回复用户
+        source.reply(translate(server_instance, 'timed_restart.system.set_timezone', timezone=new_timezone))
+
+    except ValueError:
+        # 如果时区转换失败，返回错误信息
+        source.reply(translate(server_instance, 'timed_restart.system.invalid_timezone_format'))
+
+def save_config():
+    """ 保存配置到文件 """
+    config = {
+        "restart_times": restart_times,
+        "warning_minutes": warning_minutes,
+        "timezone": timezone_offset
+    }
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=4)
 
 
 def run_reload_command(source: CommandSource):
     """ 重新加载配置 """
     load_config()
-    source.reply(f"TimedRestart 配置已重新加载！当前时区：UTC{timezone_offset}")
+    source.reply(translate(source.get_server(), "timed_restart.system.reload_success", timezone=timezone_offset))

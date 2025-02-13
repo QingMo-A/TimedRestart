@@ -9,8 +9,7 @@
     "author": "QingMo",
     "link": "https://github.com/QingMo-A/TimedRestart",
     "dependencies": {
-        "mcdreforged": ">=2.6.0",
-        "minecraft_data_api": "*"
+        "mcdreforged": ">=2.6.0"
     },
     "resources": ["lang"]
 }
