@@ -154,7 +154,7 @@ def set_timezone(source: CommandSource, timezone: str):
     """ 设置新的时区 """
     global timezone_offset  # 确保更新全局变量
 
-    # 检查time是否是字典格式，如果是，提取出'time'键的值
+    # 检查time是否是字典格式，如果是，提取出'timezone'键的值
     if isinstance(timezone, dict) and 'timezone' in timezone:
         timezone = timezone['timezone']
 
