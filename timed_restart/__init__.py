@@ -8,7 +8,7 @@ from mcdreforged.api.command import SimpleCommandBuilder, Integer, Text, GreedyT
 
 PLUGIN_METADATA = {
     'id': 'timed_restart',
-    'version': '1.3.0',
+    'version': '1.0.0',
     'name': 'Timed Restart',
     'description': '定时重启服务器，支持时区设置、提前预警和配置热加载',
     'author': 'QingMo'
