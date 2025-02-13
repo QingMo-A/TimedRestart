@@ -1,10 +1,9 @@
-import time
-import json
-import os
-import threading
 import datetime
+import threading
+import time
+
 from mcdreforged.api.all import *
-from mcdreforged.api.command import SimpleCommandBuilder, Integer, Text, GreedyText
+from mcdreforged.api.command import SimpleCommandBuilder, Text
 
 PLUGIN_METADATA = {
     'id': 'timed_restart',
@@ -13,9 +12,6 @@ PLUGIN_METADATA = {
     'description': '定时重启服务器，支持时区设置、提前预警和配置热加载',
     'author': 'QingMo'
 }
-
-# 配置文件路径
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
 # 服务器实例
 server_instance: PluginServerInterface = None
@@ -36,37 +32,6 @@ timezone_offset = 8  # 默认东八区
 def translate(server: PluginServerInterface, key: str, **kwargs):
     """ 读取 yml 文件中的翻译文本 """
     return server.rtr(key, **kwargs)
-
-
-def load_config():
-    """ 加载配置文件 """
-    global restart_times, warning_minutes, timezone_offset
-    if not os.path.exists(CONFIG_PATH):
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(default_config, f, indent=4)
-        restart_times[:] = default_config["restart_times"]
-        warning_minutes[:] = default_config["warning_minutes"]
-        timezone_offset = default_config["timezone"]
-        return
-
-    try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            config = json.load(f)
-            restart_times[:] = config.get("restart_times", default_config["restart_times"])
-            warning_minutes[:] = config.get("warning_minutes", default_config["warning_minutes"])
-            timezone_offset = config.get("timezone", default_config["timezone"])
-            server_instance.logger.info(
-                translate(server_instance, "timed_restart.system.config_loaded",
-                          restart_times=restart_times, warning_minutes=warning_minutes, timezone=timezone_offset)
-            )
-    except Exception as e:
-        server_instance.logger.warning(
-            translate(server_instance, "timed_restart.system.error_loading_config", error=str(e))
-        )
-        restart_times[:] = default_config["restart_times"]
-        warning_minutes[:] = default_config["warning_minutes"]
-        timezone_offset = default_config["timezone"]
-
 
 def get_local_time():
     """ 获取当前时区的时间（格式 HH:MM） """
@@ -106,26 +71,23 @@ def warn_and_restart():
     time.sleep(2)  # 确保消息发送完毕
     server_instance.restart()
 
+config = None
 
 def on_load(server: PluginServerInterface, old_module):
-    global server_instance
+    global server_instance, config, restart_times, warning_minutes, timezone_offset
     builder = SimpleCommandBuilder()
     server_instance = server
+    config = server.load_config_simple("config.json",default_config)
 
-    load_config()
+    # 提取数据
+    restart_times = config["restart_times"]  # 获取重启时间列表
+    warning_minutes = config["warning_minutes"]  # 获取预警时间列表
+    timezone_offset = config["timezone"]  # 获取时区
+
     server.logger.info(translate(server, "timed_restart.system.plugin_loaded"))
 
     restart_thread = threading.Thread(target=check_restart_schedule, daemon=True)
     restart_thread.start()
-
-    # server.register_command(
-    #     Literal('!!timed_restart')
-    #     .then(Literal('reload').runs(run_reload_command))
-    #     .then(Literal('help').runs(show_help))
-    #     .then(Literal('list').runs(show_restart_times))
-    #     .then(Literal('add').then(Argument(Text).runs(add_restart_time)))
-    #     .then(Literal('remove').then(Argument(Text).runs(remove_restart_time)))
-    # )
 
     # 注册命令
     builder.command('!!timed_restart reload', run_reload_command)
@@ -216,15 +178,30 @@ def set_timezone(source: CommandSource, timezone: str):
         # 如果时区转换失败，返回错误信息
         source.reply(translate(server_instance, 'timed_restart.system.invalid_timezone_format'))
 
+def load_config():
+    """ 加载配置文件 """
+    global server_instance, config, restart_times, warning_minutes, timezone_offset
+
+    config = server_instance.load_config_simple("config.json", default_config)
+
+    # 提取数据
+    restart_times = config["restart_times"]  # 获取重启时间列表
+    warning_minutes = config["warning_minutes"]  # 获取预警时间列表
+    timezone_offset = config["timezone"]  # 获取时区
+
+
 def save_config():
     """ 保存配置到文件 """
-    config = {
-        "restart_times": restart_times,
-        "warning_minutes": warning_minutes,
-        "timezone": timezone_offset
-    }
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=4)
+    global config, server_instance  # 确保使用全局的 config 对象
+
+    # 更新配置字典
+    config["restart_times"] = restart_times
+    config["warning_minutes"] = warning_minutes
+    config["timezone"] = timezone_offset
+
+    # 使用 server.save_config_simple 来保存配置
+    server_instance.save_config_simple(config)
+    server_instance.logger.info("配置已保存：{}".format(config))
 
 
 def run_reload_command(source: CommandSource):

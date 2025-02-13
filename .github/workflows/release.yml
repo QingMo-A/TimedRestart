@@ -1,0 +1,70 @@
+name: Auto Release on Push
+
+on:
+  push:
+    branches:
+      - main  # 监听指定分支的 push 事件
+
+jobs:
+  release:
+    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 环境来运行
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v3  # 检出当前仓库的代码
+
+      # 2. 提取版本号
+      - name: Extract version from plugin metadata
+        id: extract_version
+        run: |
+          # 提取 plugin 的版本号（从 timed_restart/__init__.py 提取 version）
+          version=$(grep -oP "(?<=version': ')[^']+" timed_restart/__init__.py)
+          echo "Extracted version: $version"
+          echo "VERSION=$version" >> $GITHUB_ENV  # 将版本号传递给后续的步骤
+
+      # 3. 创建 Tag
+      - name: Create Tag
+        env:
+          PAT: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # 使用 GitHub Personal Access Token
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v${{ env.VERSION }}" -m "Release version ${{ env.VERSION }}"  # 创建 Git tag
+          git push https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/QingMo-A/TimedRestart.git "v${{ env.VERSION }}"  # 推送 tag 到 GitHub
+
+      # 4. 构建项目
+      - name: Build Project (Create .mcdr Package)
+        run: |
+          mkdir release
+          # 压缩 lang 文件夹、timed_restart 文件夹和 mcdreforged.plugin.json
+          zip -r release/timed_restart.zip lang timed_restart mcdreforged.plugin.json
+          # 将压缩包重命名为 .mcdr
+          mv release/timed_restart.zip release/timed_restart.mcdr
+
+      # 5. 验证构建文件是否存在
+      - name: Verify Build Artifacts
+        run: |
+          if [ ! -f release/timed_restart.mcdr ]; then
+            echo "Build artifact not found! Exiting."
+            exit 1
+          fi
+
+      # 6. 创建 GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ env.VERSION }}  # 发布名称
+          tag_name: v${{ env.VERSION }}  # 使用创建的 Git tag
+          body: ${{ github.event.head_commit.message }}  # 提交信息作为 release 描述
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub token 用于创建 release
+
+      # 7. 上传构建文件到 Release
+      - name: Upload Artifact to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/timed_restart.mcdr  # 上传 .mcdr 文件到 GitHub Release
+          tag_name: v${{ env.VERSION }}  # 使用创建的 Git tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub token 用于上传文件

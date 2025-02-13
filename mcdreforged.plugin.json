@@ -1,6 +1,6 @@
 {
     "id": "timed_restart",
-    "version": "1.0",
+    "version": "1.0.0",
     "name": "Timed Restart",
     "description": {
         "en_us": "Scheduled Server Restart",
