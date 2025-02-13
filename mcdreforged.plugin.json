@@ -7,7 +7,7 @@
         "zh_cn": "定时重启服务器"
     },
     "author": "QingMo",
-    "link": "https://github.com/ltBerryshdo/Whisper",
+    "link": "https://github.com/QingMo-A/TimedRestart",
     "dependencies": {
         "mcdreforged": ">=2.6.0",
         "minecraft_data_api": "*"
