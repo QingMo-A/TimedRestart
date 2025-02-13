@@ -1,27 +1,27 @@
 timed_restart:
   system:
-    plugin_loaded: "TimedRestart 插件已加载！"
-    config_loaded: "配置文件已加载：{restart_times}，预警时间：{warning_minutes}，时区：UTC{timezone}"
-    reload_success: "TimedRestart 配置已重新加载！当前时区：UTC{timezone}"
-    restart_warning: "服务器将在 {minutes} 分钟后重启，请保存进度！"
-    restart_now: "服务器正在重启..."
-    error_loading_config: "配置文件加载失败，使用默认值：{error}"
-    log_restart_warning: "发送重启预警：{minutes} 分钟后重启"
-    list_restart_times: "当前设定的重启时间为：{times}"
-    add_restart_time: "成功添加新的重启时间：{time}"
-    remove_restart_time: "成功删除重启时间：{time}"
-    restart_time_exists: "重启时间 {time} 已经存在！"
-    restart_time_not_exists: "重启时间 {time} 不存在！"
-    invalid_timezone: "无效的时区，时区必须在 -12 到 12 之间"
-    invalid_timezone_format: "无效的时区格式，必须是一个整数"
-    set_timezone: "时区已设置为 {timezone}"
+    plugin_loaded: "TimedRestart plugin loaded!"
+    config_loaded: "Configuration file loaded: {restart_times}, warning time: {warning_minutes}, timezone: UTC{timezone}"
+    reload_success: "TimedRestart configuration reloaded! Current timezone: UTC{timezone}"
+    restart_warning: "The server will restart in {minutes} minutes, please save your progress!"
+    restart_now: "The server is restarting..."
+    error_loading_config: "Failed to load configuration file, using default values: {error}"
+    log_restart_warning: "Sent restart warning: the server will restart in {minutes} minutes"
+    list_restart_times: "Current set restart times are: {times}"
+    add_restart_time: "Successfully added a new restart time: {time}"
+    remove_restart_time: "Successfully removed restart time: {time}"
+    restart_time_exists: "Restart time {time} already exists!"
+    restart_time_not_exists: "Restart time {time} does not exist!"
+    invalid_timezone: "Invalid timezone, timezone must be between -12 and 12"
+    invalid_timezone_format: "Invalid timezone format, must be an integer"
+    set_timezone: "Timezone has been set to {timezone}"
 
   cmd:
     help: |
-      ------ TimedRestart 指令帮助 ------
-      !!timed_restart help  显示此帮助信息
-      !!timed_restart reload  重新加载配置
-      !!timed_restart list 显示重启时间
-      !!timed_restart add <时间> 添加新的重启时间（格式 HH:MM，例如 `!!timed_restart add 15:30`）
-      !!timed_restart remove <时间> 删除已设定的重启时间（例如 `!!timed_restart remove 12:00`）
-      !!timed_restart timezone <时区> 设置新的时区（例如 `!!restart timezone 8`）
+      ------ TimedRestart Command Help ------
+      !!timed_restart help  Show this help information
+      !!timed_restart reload  Reload configuration
+      !!timed_restart list Show restart times
+      !!timed_restart add <time> Add a new restart time (format HH:MM, e.g. `!!timed_restart add 15:30`)
+      !!timed_restart remove <time> Remove an existing restart time (e.g. `!!timed_restart remove 12:00`)
+      !!timed_restart timezone <timezone> Set a new timezone (e.g. `!!restart timezone 8`)
