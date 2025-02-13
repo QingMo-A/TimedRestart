@@ -179,9 +179,9 @@ def set_timezone(source: CommandSource, timezone: str):
         source.reply(translate(server_instance, 'timed_restart.system.invalid_timezone_format'))
 
 def load_config():
-    """ 加载配置文件 """
     global server_instance, config, restart_times, warning_minutes, timezone_offset
 
+    # 加载配置文件
     config = server_instance.load_config_simple("config.json", default_config)
 
     # 提取数据
