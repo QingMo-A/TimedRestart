@@ -26,7 +26,7 @@ default_config = {
 # 变量存储配置
 restart_times = []
 warning_minutes = []
-timezone_offset = 8  # 默认东八区
+timezone_offset = []
 
 
 def translate(server: PluginServerInterface, key: str, **kwargs):
